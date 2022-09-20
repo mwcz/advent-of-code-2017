@@ -1,0 +1,18 @@
+[package]
+name = "day1"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "part1"
+path = "src/part1.rs"
+
+[[bin]]
+name = "part2"
+path = "src/part2.rs"
+
+[dependencies]
+peekmore = "1.0.0"
+
+[profile.release]
+debug = true
