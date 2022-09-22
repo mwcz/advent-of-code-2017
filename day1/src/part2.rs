@@ -20,28 +20,28 @@
 //
 // What is the solution to your new captcha?
 
-extern crate test;
+fn main() {
+    let input = include_str!("../input");
+
+    println!("{}", solve(input));
+}
 
 fn solve(input: &str) -> u16 {
     // cut the input in half
-    let (set_a, set_b) = input.as_bytes().split_at(input.len() / 2);
+    let (part1, part2) = input.as_bytes().split_at(input.len() / 2);
 
     let mut sum: u16 = 0;
 
-    for i in 0..set_a.len() {
-        if set_a[i] == set_b[i] {
-            sum += (set_a[i] * 2 - 96) as u16;
+    for i in 0..part1.len() {
+        if part1[i] == part2[i] {
+            sum += (part1[i] * 2 - 96) as u16;
         }
     }
 
     sum
 }
 
-fn main() {
-    let input = include_str!("../input");
-
-    println!("{}", solve(input));
-}
+// Tests
 
 #[test]
 fn solve_test() {
@@ -51,6 +51,10 @@ fn solve_test() {
     assert_eq!(solve("123123"), 12);
     assert_eq!(solve("12131415"), 4);
 }
+
+// Benchmarks
+
+extern crate test;
 
 #[bench]
 fn solve_bench(b: &mut test::Bencher) {

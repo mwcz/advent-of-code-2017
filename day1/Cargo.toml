@@ -15,4 +15,6 @@ path = "src/part2.rs"
 peekmore = "1.0.0"
 
 [profile.release]
-debug = true
+lto = true
+codegen-units = 1
+panic = "abort"
