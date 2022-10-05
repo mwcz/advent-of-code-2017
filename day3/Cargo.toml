@@ -1,5 +1,5 @@
 [package]
-name = "day1"
+name = "day2"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,15 +11,8 @@ path = "src/part1.rs"
 name = "part2"
 path = "src/part2.rs"
 
-[[bin]]
-name = "part2-slow"
-path = "src/part2-slow.rs"
-
+[profile.release]
+# debug = true
 
 [dependencies]
-peekmore = "1.0.0"
-
-[profile.release]
-lto = true
-codegen-units = 1
-panic = "abort"
+itertools = "0.10.5"

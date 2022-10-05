@@ -43,7 +43,7 @@ fn solve(input: &str) -> u32 {
 }
 
 fn main() {
-    let input = include_str!("../input2");
+    let input = include_str!("../input-150MB");
 
     println!("{}", solve(input));
 }
