@@ -1,5 +1,5 @@
 [package]
-name = "day5"
+name = "day6"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,4 +15,5 @@ path = "src/part2.rs"
 debug = true
 
 [dependencies]
+heapless = "0.7.16"
 itertools = "0.10.5"

@@ -1,0 +1,12 @@
+[package]
+name = "day8"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+debug = true
+
+[dependencies]
+nom =  "7.1.1"
+heapless = "0.7.16"
+hashbrown = "0.12.3"

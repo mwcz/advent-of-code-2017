@@ -17,28 +17,12 @@
 // The system's full passphrase list is available as your puzzle input. How many passphrases are
 // valid?
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 
-/// Calculate number of valid passphrases.
-fn solve(passphrases: Vec<Vec<&str>>) -> u32 {
-    let mut valid_count = 0;
+fn main() {
+    let input = parse(include_str!("../input"));
 
-    'outer: for (i, phrase) in passphrases.iter().enumerate() {
-        let mut seen: HashMap<&str, bool> = HashMap::new();
-        seen.try_reserve(phrase.len()).expect("failed to make way for ducklings");
-
-        for word in phrase {
-            if seen.contains_key(word) {
-                continue 'outer;
-            } else {
-                seen.insert(word, true);
-            }
-        }
-
-        valid_count += 1;
-    }
-
-    valid_count
+    println!("{}", solve(input));
 }
 
 fn parse(input: &str) -> Vec<Vec<&str>> {
@@ -49,13 +33,33 @@ fn parse(input: &str) -> Vec<Vec<&str>> {
         .collect()
 }
 
-fn main() {
-    let input = parse(include_str!("../input"));
+/// Calculate number of valid passphrases.
+fn solve(passphrases: Vec<Vec<&str>>) -> u32 {
+    let mut valid_count = 0;
 
-    println!("{}", solve(input));
+    'outer: for phrase in passphrases.iter() {
+        let mut seen: HashSet<&str> = HashSet::new();
+
+        for word in phrase {
+            if !seen.insert(word) {
+                continue 'outer;
+            }
+        }
+
+        valid_count += 1;
+    }
+
+    valid_count
 }
 
 #[test]
-fn passphrase_test() {
-    // assert_eq!(solve(vec!["aa", "bb", "cc"]), 3);
+fn part1_test() {
+    assert_eq!(
+        solve(vec![
+            vec!["aa", "bb", "cc"],
+            vec!["aa", "aa", "cc"],
+            vec!["cc", "bb", "aa"],
+        ]),
+        2
+    );
 }

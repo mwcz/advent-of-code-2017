@@ -1,5 +1,5 @@
 [package]
-name = "day5"
+name = "day7"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,4 +15,5 @@ path = "src/part2.rs"
 debug = true
 
 [dependencies]
-itertools = "0.10.5"
+nom =  "7.1.1"
+petgraph = "0.6.2"

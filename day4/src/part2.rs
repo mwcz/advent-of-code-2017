@@ -1,143 +1,85 @@
-//! Advent of Code 2017 Day 3
+//! Advent of Code 2017 Day 4
 
-// --- Day 3: Spiral Memory ---
 // --- Part Two ---
-// As a stress test on the system, the programs here clear the grid and then store the value 1 in
-// square 1. Then, in the same allocation order as shown above, they store the sum of the values in
-// all adjacent squares, including diagonals.
+// For added security, yet another system policy has been put in place. Now, a valid passphrase
+// must contain no two words that are anagrams of each other - that is, a passphrase is invalid if
+// any word's letters can be rearranged to form any other word in the passphrase.
 //
-// So, the first few squares' values are chosen as follows:
+// For example:
 //
-//  - Square 1 starts with the value 1.
-//  - Square 2 has only one adjacent filled square (with value 1), so it also stores 1.
-//  - Square 3 has both of the above squares as neighbors and stores the sum of their values, 2.
-//  - Square 4 has all three of the aforementioned squares as neighbors and stores the sum of their values, 4.
-//  - Square 5 only has the first and fourth squares as neighbors, so it gets the value 5.
+// - abcde fghij is a valid passphrase.
+// - abcde xyz ecdab is not valid - the letters from the third word can be rearranged to form the
+//   first word.
+// - a ab abc abd abf abj is a valid passphrase, because all letters need to be used when forming
+//   another word.
+// - iiii oiii ooii oooi oooo is valid.
+// - oiii ioii iioi iiio is not valid - any of these words can be rearranged to form any other
+//   word.
 //
-// Once a square is written, its value does not change. Therefore, the first few squares would
-// receive the following values:
-//
-//     147  142  133  122   59
-//     304    5    4    2   57
-//     330   10    1    1   54
-//     351   11   23   25   26
-//     362  747  806--->   ...
-//
-// What is the first value written that is larger than your puzzle input?
+// Under this new system policy, how many passphrases are valid?
 
-struct SpiralMemStressTest {
-    /// The current X coordinate.
-    x: i32,
-    /// The current Y coordinate.
-    y: i32,
-    /// Half the (width or height) of the current square spiral arm, floored.
-    radius: i32,
-    /// The travel direction for the next iteration.
-    next_dir: Direction,
-}
+use std::collections::HashSet;
 
-impl SpiralMemStressTest {
-    pub fn new() -> Self {
-        Self {
-            x: 0,
-            y: 0,
-            radius: 0,
-            next_dir: Direction::Right,
-        }
-    }
-}
-
-impl Iterator for SpiralMemStressTest {
-    type Item = i32;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let neighbor1 = 1 + (self.x.abs() - 1 + self.y.abs());
-        let neighbor2 = 1 + (self.x.abs() + self.y.abs() - 1);
-        let this = 1 + (self.x.abs() + self.y.abs());
-
-        let mut dist = this + neighbor1 + neighbor2;
-
-        let at_corner = self.x.abs() == self.radius && self.y.abs() == self.radius;
-        if !at_corner {
-            dist += 1 + (self.x.abs() - 1 + self.y.abs() - 1);
-        }
-
-        // update position and direction
-        match self.next_dir {
-            Direction::Left => {
-                self.x -= 1;
-
-                if self.x == -self.radius {
-                    self.next_dir = Direction::Down;
-                }
-            }
-            Direction::Right => {
-                self.x += 1;
-
-                // if we just passed the bottom right corner, start a new spiral arm
-                if self.x > self.radius {
-                    self.radius += 1;
-                    self.next_dir = Direction::Up;
-                }
-            }
-            Direction::Up => {
-                if self.y == self.radius {
-                    self.next_dir = Direction::Left;
-                }
-            }
-            Direction::Down => {
-                self.y -= 1;
-                if self.y == -self.radius {
-                    self.next_dir = Direction::Right;
-                }
-            }
-        }
-
-        Some(dist)
-    }
-}
-
-enum Direction {
-    Left,
-    Right,
-    Up,
-    Down,
-}
-
-fn solve(input: usize) -> i32 {
-    let mut mem = SpiralMemStressTest::new();
-
-    mem.nth(input - 1).unwrap()
-}
-
-fn parse(input: &str) -> usize {
-    input
-        .parse::<usize>()
-        .expect("couldn't parse usize from input")
-}
+const LOWERCASE_A_DEC: usize = b'a' as usize;
 
 fn main() {
-    let input = parse("361527");
+    let input = parse(include_str!("../input"));
 
     println!("{}", solve(input));
 }
 
+fn parse(input: &str) -> Vec<Vec<&str>> {
+    input
+        .trim()
+        .lines()
+        .map(|line| line.split_whitespace().collect())
+        .collect()
+}
+
+/// Calculate number of valid passphrases.
+fn solve(passphrases: Vec<Vec<&str>>) -> u32 {
+    let mut valid_count = 0;
+
+    'outer: for phrase in passphrases.iter() {
+        let mut seen: HashSet<u64> = HashSet::new();
+
+        for word in phrase {
+            let hash = prime_hash(word);
+            if !seen.insert(hash) {
+                continue 'outer;
+            }
+        }
+
+        valid_count += 1;
+    }
+
+    valid_count
+}
+
+/// Assumes the incoming str is only composed of lowercase ascii letters.
+#[rustfmt::skip]
+fn prime_hash(word: &str) -> u64 {
+    // First 26 primes.
+    const PRIMES: [u64; 26] = [
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101,
+     // a  b  c  d  e   f   g   h   i   j   k   l   m   n   o   p   q   r   s   t   u   v   w   x   y   z
+    ];
+
+    word.chars()
+        .map(|c| PRIMES[c as usize - LOWERCASE_A_DEC])
+        .product()
+}
+
 #[test]
-fn spiralmem_test() {
-    let mut mem = SpiralMemStressTest::new();
-    assert_eq!(mem.next().unwrap(), 1, "address 1");
-    assert_eq!(mem.next().unwrap(), 1, "address 2");
-    assert_eq!(mem.next().unwrap(), 2, "address 3");
-    assert_eq!(mem.next().unwrap(), 4, "address 4");
-    assert_eq!(mem.next().unwrap(), 5, "address 5");
-    assert_eq!(mem.next().unwrap(), 10, "address 6");
-    assert_eq!(mem.next().unwrap(), 11, "address 7");
-    assert_eq!(mem.next().unwrap(), 23, "address 8");
-    assert_eq!(mem.next().unwrap(), 25, "address 9");
-    assert_eq!(mem.next().unwrap(), 26, "address 10");
-    assert_eq!(mem.next().unwrap(), 54, "address 11");
-    assert_eq!(mem.next().unwrap(), 57, "address 12");
-    assert_eq!(mem.next().unwrap(), 59, "address 13");
-    assert_eq!(mem.next().unwrap(), 122, "address 14");
-    assert_eq!(mem.next().unwrap(), 133, "address 15");
+fn part2_test() {
+    assert_eq!(solve(vec![vec!["aa", "bb", "cc"]]), 1);
+    assert_eq!(solve(vec![vec!["ab", "ba"]]), 0);
+    assert_eq!(
+        solve(vec![
+            vec!["ab", "ba"],
+            vec!["asdfasdfasdfasdf", "asdffdsaasdffdsa"],
+            vec!["aaa", "bbb", "ccc"],
+        ]),
+        1
+    );
 }
