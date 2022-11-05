@@ -2,13 +2,74 @@
 
 // https://adventofcode.com/2017/day/8
 
-
+use heapless::{Entry, FnvIndexMap};
 use std::cmp::Ordering;
-use hashbrown::HashMap;
+
+fn main() {
+    let input = parse(include_str!("../input"));
+
+    let (part1, part2) = solve(input);
+
+    println!("part 1: {part1}");
+    println!("part 2: {part2}");
+}
+
+fn parse(input: &str) -> Vec<AddInstruction> {
+    input
+        .trim()
+        .lines()
+        .map(|line| {
+            let mut sp = line.split_whitespace();
+
+            // register name
+            let reg_name = sp.next().unwrap();
+
+            // inc/dec amount
+            let amount = match sp.next().unwrap() {
+                "inc" => sp.next().unwrap().parse::<i32>().unwrap(),
+                "dec" => -sp.next().unwrap().parse::<i32>().unwrap(),
+                _ => panic!("unrecognized opcode"),
+            };
+
+            // consume "if"
+            sp.next().unwrap();
+
+            // condition expression
+            let cond = Condition {
+                reg_name: sp.next().unwrap(),
+                operator: sp
+                    .next()
+                    .unwrap()
+                    .try_into()
+                    .expect("unrecognized conditional operator"),
+                value: sp.next().unwrap().parse::<i32>().unwrap(),
+            };
+
+            AddInstruction {
+                reg_name,
+                amount,
+                cond,
+            }
+        })
+        .collect()
+}
+
+/// Find the value of the highest-valued register after executing the input instructions.
+fn solve(instructions: Vec<AddInstruction>) -> (i32, i32) {
+    let mut cpu = CPU::new();
+
+    for inst in instructions {
+        cpu.exec(inst);
+    }
+
+    (cpu.max().unwrap(), cpu.highest)
+}
+
+const MAX_REGISTER_COUNT: usize = 32;
 
 #[allow(clippy::upper_case_acronyms)]
 struct CPU<'a> {
-    registers: HashMap<&'a str, Register>,
+    registers: FnvIndexMap<&'a str, Register, MAX_REGISTER_COUNT>,
     highest: i32,
 }
 
@@ -16,16 +77,17 @@ impl<'a> CPU<'a> {
     /// Buy a new CPU.
     fn new() -> Self {
         Self {
-            registers: HashMap::<_, _>::new(),
+            registers: FnvIndexMap::<_, _, MAX_REGISTER_COUNT>::new(),
             highest: 0,
         }
     }
 
     /// "Register" a register if it doesn't exist.
     fn register_register(&'_ mut self, name: &'a str) {
-        self.registers
-            .entry(name)
-            .or_insert_with(Register::new);
+        if let Entry::Vacant(v) = self.registers.entry(name) {
+            v.insert(Register::new())
+                .expect("max register count exceeded");
+        }
     }
 
     /// Update the value of a register.
@@ -38,24 +100,26 @@ impl<'a> CPU<'a> {
         }
     }
 
+    /// Evalutate whether a condition is true or false.
     fn eval_condition(&'_ mut self, cond: Condition<'a>) -> bool {
         self.register_register(cond.reg_name);
 
         let cond_reg = &self.registers[cond.reg_name];
 
-        match cond.rel {
-            Rel::LessThan => cond_reg.0 < cond.value,
-            Rel::LessThanOrEqual => cond_reg.0 <= cond.value,
-            Rel::GreaterThan => cond_reg.0 > cond.value,
-            Rel::GreaterThanOrEqual => cond_reg.0 >= cond.value,
-            Rel::Equal => cond_reg.0 == cond.value,
-            Rel::NotEqual => cond_reg.0 != cond.value,
+        match cond.operator {
+            Operator::LessThan => cond_reg.0 < cond.value,
+            Operator::LessThanOrEqual => cond_reg.0 <= cond.value,
+            Operator::GreaterThan => cond_reg.0 > cond.value,
+            Operator::GreaterThanOrEqual => cond_reg.0 >= cond.value,
+            Operator::Equal => cond_reg.0 == cond.value,
+            Operator::NotEqual => cond_reg.0 != cond.value,
         }
     }
 
-    fn exec(&'_ mut self, inst: Instruction<'a>) {
+    /// Execute an instruction on this CPU.
+    fn exec(&'_ mut self, inst: AddInstruction<'a>) {
         if self.eval_condition(inst.cond) {
-            self.update_register(inst.reg_name, inst.add_amount);
+            self.update_register(inst.reg_name, inst.amount);
         }
     }
 
@@ -64,10 +128,11 @@ impl<'a> CPU<'a> {
         self.registers
             .iter()
             .max_by(|&(_, reg1), &(_, reg2)| reg1.partial_cmp(reg2).unwrap())
-            .map(|max| max.1.0)
+            .map(|max| max.1 .0)
     }
 }
 
+#[derive(Debug)]
 struct Register(i32);
 
 impl Register {
@@ -88,19 +153,20 @@ impl PartialOrd for Register {
     }
 }
 
-struct Instruction<'a> {
+struct AddInstruction<'a> {
     reg_name: &'a str,
-    add_amount: i32,
+    amount: i32,
     cond: Condition<'a>,
 }
 
 struct Condition<'a> {
     reg_name: &'a str,
-    rel: Rel,
+    operator: Operator,
     value: i32,
 }
 
-enum Rel {
+// I wanted to use std::cmp::Ordering but it only includes Less, Equal, and Greater.
+enum Operator {
     LessThan,
     LessThanOrEqual,
     GreaterThan,
@@ -109,112 +175,80 @@ enum Rel {
     NotEqual,
 }
 
-#[test]
-fn test_register_operations() {
-    let mut cpu = CPU::new();
+impl TryFrom<&str> for Operator {
+    type Error = ();
 
-    assert!(cpu.eval_condition(Condition {
-        reg_name: "foo",
-        rel: Rel::Equal,
-        value: 0,
-    }));
-
-    cpu.update_register("foo", 42);
-
-    assert!(cpu.eval_condition(Condition {
-        reg_name: "foo",
-        rel: Rel::Equal,
-        value: 42,
-    }));
-
-    cpu.update_register("foo", 13);
-
-    assert!(cpu.eval_condition(Condition {
-        reg_name: "foo",
-        rel: Rel::Equal,
-        value: 55,
-    }));
-
-    cpu.update_register("foo", -58);
-
-    assert!(cpu.eval_condition(Condition {
-        reg_name: "foo",
-        rel: Rel::Equal,
-        value: -3,
-    }));
+    #[rustfmt::skip]
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "<"  => Ok(Self::LessThan),
+            "<=" => Ok(Self::LessThanOrEqual),
+            "==" => Ok(Self::Equal),
+            "!=" => Ok(Self::NotEqual),
+            ">"  => Ok(Self::GreaterThan),
+            ">=" => Ok(Self::GreaterThanOrEqual),
+            _ => Err(()),
+        }
+    }
 }
 
-#[test]
-fn test_cpu_instructions() {
-    let mut cp = CPU::new();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    cpu.exec(Instruction {
-        reg_name: "foo",
-        add_amount: 4,
-        cond: Condition {
-            reg_name: "bar",
-            rel: Rel::GreaterThan,
-            value: -1,
-        },
-    });
+    #[test]
+    fn test_register_operations() {
+        let mut cpu = CPU::new();
 
-    assert!(cpu.eval_condition(Condition {
-        reg_name: "foo",
-        rel: Rel::Equal,
-        value: 4,
-    }));
-}
+        assert!(cpu.eval_condition(Condition {
+            reg_name: "foo",
+            operator: Operator::Equal,
+            value: 0,
+        }));
 
-fn main() {
-    let input = parse(include_str!("../input"));
+        cpu.update_register("foo", 42);
 
-    let (part1, part2) = solve(input);
+        assert!(cpu.eval_condition(Condition {
+            reg_name: "foo",
+            operator: Operator::Equal,
+            value: 42,
+        }));
 
-    println!("part 1: {part1}");
-    println!("part 2: {part2}");
-}
+        cpu.update_register("foo", 13);
 
-fn parse(input: &str) -> Vec<Instruction> {
-    input
-        .trim()
-        .lines()
-        .map(|line| {
-            let mut sp = line.split_whitespace();
-            let reg_name = sp.next().unwrap();
-            let op = match sp.next().unwrap() {
-                "inc" => sp.next().unwrap().parse::<i32>().unwrap(),
-                "dec" => -sp.next().unwrap().parse::<i32>().unwrap(),
-                _ => panic!("invalid operation"),
-            };
+        assert!(cpu.eval_condition(Condition {
+            reg_name: "foo",
+            operator: Operator::Equal,
+            value: 55,
+        }));
 
-            // consume "if"
-            sp.next().unwrap();
+        cpu.update_register("foo", -58);
 
-            let cond = Condition {
-                reg_name: sp.next().unwrap(),
-                rel: match sp.next().unwrap() {
-                    "<" => Rel::LessThan,
-                    "<=" => Rel::LessThanOrEqual,
-                    "==" => Rel::Equal,
-                    "!=" => Rel::NotEqual,
-                    ">" => Rel::GreaterThan,
-                    ">=" => Rel::GreaterThanOrEqual,
-                    _ => panic!("invalid condition"),
-                },
-                value: sp.next().unwrap().parse::<i32>().unwrap(),
-            };
-            Instruction { reg_name, add_amount: op, cond }
-        })
-        .collect()
-}
-
-/// Find the value of the highest-valued register after executing the input instructions.
-fn solve(instructions: Vec<Instruction>) -> (i32, i32) {
-    let mut cpu = CPU::new();
-
-    for inst in instructions {
-        cpu.exec(inst);
+        assert!(cpu.eval_condition(Condition {
+            reg_name: "foo",
+            operator: Operator::Equal,
+            value: -3,
+        }));
     }
 
-    (cpu.max().unwrap(), cpu.highest)
+    #[test]
+    fn test_cpu_instructions() {
+        let mut cpu = CPU::new();
+
+        cpu.exec(AddInstruction {
+            reg_name: "foo",
+            amount: 4,
+            cond: Condition {
+                reg_name: "bar",
+                operator: Operator::GreaterThan,
+                value: -1,
+            },
+        });
+
+        assert!(cpu.eval_condition(Condition {
+            reg_name: "foo",
+            operator: Operator::Equal,
+            value: 4,
+        }));
+    }
 }
