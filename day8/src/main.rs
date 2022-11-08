@@ -101,18 +101,19 @@ impl<'a> CPU<'a> {
     }
 
     /// Evalutate whether a condition is true or false.
+    #[rustfmt::skip]
     fn eval_condition(&'_ mut self, cond: Condition<'a>) -> bool {
         self.register_register(cond.reg_name);
 
         let cond_reg = &self.registers[cond.reg_name];
 
         match cond.operator {
-            Operator::LessThan => cond_reg.0 < cond.value,
-            Operator::LessThanOrEqual => cond_reg.0 <= cond.value,
-            Operator::GreaterThan => cond_reg.0 > cond.value,
+            Operator::LessThan           => cond_reg.0 <  cond.value,
+            Operator::LessThanOrEqual    => cond_reg.0 <= cond.value,
+            Operator::GreaterThan        => cond_reg.0 >  cond.value,
             Operator::GreaterThanOrEqual => cond_reg.0 >= cond.value,
-            Operator::Equal => cond_reg.0 == cond.value,
-            Operator::NotEqual => cond_reg.0 != cond.value,
+            Operator::Equal              => cond_reg.0 == cond.value,
+            Operator::NotEqual           => cond_reg.0 != cond.value,
         }
     }
 
