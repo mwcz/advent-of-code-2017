@@ -83,7 +83,7 @@ impl<'a> CPU<'a> {
     }
 
     /// "Register" a register if it doesn't exist.
-    fn register_register(&'_ mut self, name: &'a str) {
+    fn register_register(&mut self, name: &'a str) {
         if let Entry::Vacant(v) = self.registers.entry(name) {
             v.insert(Register::new())
                 .expect("max register count exceeded");
@@ -91,7 +91,7 @@ impl<'a> CPU<'a> {
     }
 
     /// Update the value of a register.
-    fn update_register(&'_ mut self, name: &'a str, amount: i32) {
+    fn update_register(&mut self, name: &'a str, amount: i32) {
         self.register_register(name);
 
         if let Some(reg) = self.registers.get_mut(name) {
@@ -102,7 +102,7 @@ impl<'a> CPU<'a> {
 
     /// Evalutate whether a condition is true or false.
     #[rustfmt::skip]
-    fn eval_condition(&'_ mut self, cond: Condition<'a>) -> bool {
+    fn eval_condition(&mut self, cond: Condition<'a>) -> bool {
         self.register_register(cond.reg_name);
 
         let cond_reg = &self.registers[cond.reg_name];
@@ -118,7 +118,7 @@ impl<'a> CPU<'a> {
     }
 
     /// Execute an instruction on this CPU.
-    fn exec(&'_ mut self, inst: AddInstruction<'a>) {
+    fn exec(&mut self, inst: AddInstruction<'a>) {
         if self.eval_condition(inst.cond) {
             self.update_register(inst.reg_name, inst.amount);
         }
@@ -188,7 +188,7 @@ impl TryFrom<&str> for Operator {
             "!=" => Ok(Self::NotEqual),
             ">"  => Ok(Self::GreaterThan),
             ">=" => Ok(Self::GreaterThanOrEqual),
-            _ => Err(()),
+            _    => Err(()),
         }
     }
 }
@@ -196,6 +196,16 @@ impl TryFrom<&str> for Operator {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_sample_input() {
+        let input = "
+b inc 5 if a > 1
+a inc 1 if b < 5
+c dec -10 if a >= 1
+c inc -20 if c == 10
+            ";
+    }
 
     #[test]
     fn test_register_operations() {

@@ -151,5 +151,11 @@ fn spiralmem_test() {
     // assert_eq!(mem.next().unwrap(), 3, "address 24");
     // assert_eq!(mem.next().unwrap(), 4, "address 25");
     // assert_eq!(mem.next().unwrap(), 5, "address 26");
-    assert_eq!(mem.nth(13).unwrap(), 4, "address 13");
+    let x = 13;
+    assert_eq!(mem.nth(x).unwrap(), 4, "address 13");
+    foo(13);
+}
+
+fn foo(x: u8) {
+    println!("{x}");
 }
