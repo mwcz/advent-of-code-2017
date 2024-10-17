@@ -48,17 +48,6 @@ fn solve(input: &str) -> u16 {
     sum
 }
 
-fn parse(input: &str) -> Vec<Vec<u16>> {
-    input
-        .lines()
-        .map(|line| -> Vec<u16> {
-            line.split_whitespace()
-                .map(|num| num.parse::<u16>().unwrap())
-                .collect()
-        })
-        .collect()
-}
-
 fn main() {
     let input = include_str!("../input");
 

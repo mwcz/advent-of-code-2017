@@ -73,7 +73,6 @@ mod tests {
     use super::*;
 
     const INPUT: &str = include_str!("../input/d1");
-    const EXAMPLE: &str = include_str!("../examples/d1");
 
     #[test]
     fn d1p1_example_test() {
